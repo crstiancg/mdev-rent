@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categorias', function (Blueprint $table) {
+        Schema::create('alquilerdets', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('alquiler_id')->constrained();
+            $table->foreignId('producto_id')->constrained();
+            $table->integer('cantidad');
+            $table->decimal('precio_alquiler', 10, 2);
+            $table->decimal('subtotal', 10, 2);
             $table->timestamps();
         });
     }
@@ -23,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categorias');
+        Schema::dropIfExists('alquilerdets');
     }
 };
