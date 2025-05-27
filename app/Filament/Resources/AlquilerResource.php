@@ -177,7 +177,7 @@ public static function form(Form $form): Form
             ->columns([
                 Tables\Columns\TextColumn::make('cliente.dni')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('cliente.nombre')
+                Tables\Columns\TextColumn::make('cliente.nombre_completo')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_alquiler')
                     ->date()
@@ -188,9 +188,9 @@ public static function form(Form $form): Form
                 Tables\Columns\TextColumn::make('fecha_devolucion')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('monto_total')
-                    ->numeric()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('monto_total')
+                //     ->numeric()
+                //     ->sortable(),
                 Tables\Columns\TextColumn::make('estado')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
