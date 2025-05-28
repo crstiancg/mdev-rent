@@ -13,7 +13,13 @@ class ManageClientes extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Nuevo Cliente')
+                ->icon('heroicon-o-plus')
+                ->color('primary')
+                ->tooltip('Crear nuevo cliente'),
         ];
     }
+
+
 }

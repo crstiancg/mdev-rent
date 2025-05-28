@@ -22,6 +22,11 @@ class CategoriaResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $navigationLabel = 'Categorías';
 
+    public static function getNavigationBadge(): ?string
+    {
+        return Categoria::count();
+    }
+
     // public static function getGloballySearchableAttributes(): array
     // {
     //     return ['name'];

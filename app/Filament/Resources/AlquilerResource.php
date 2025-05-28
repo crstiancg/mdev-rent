@@ -29,11 +29,24 @@ class AlquilerResource extends Resource
     protected static ?int $navigationSort = 5;
     protected static ?string $navigationLabel = 'Alquileres';
 
+    public static function getNavigationBadge(): ?string
+    {
+        return Alquiler::count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return Alquiler::count() > 10 ? 'warning' : 'primary';
+    }
+
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Forms\Components\Section::make('Información del Alquiler')
+                    ->columns(2)
+                    ->schema([   
                 Select::make('cliente_id')
                     ->label('Cliente')
                     ->searchable()
@@ -147,6 +160,7 @@ class AlquilerResource extends Resource
 
                 TextInput::make('monto_total')->label('Monto total')->numeric()->visible(fn (string $context) => $context === 'edit'),
                 TextInput::make('estado')->default('pendiente')->visible(fn (string $context) => $context === 'edit'),
+                ]),
 
                 // Repeater::make('inventario_id')
                 //  ->lazy()
@@ -157,7 +171,14 @@ class AlquilerResource extends Resource
                 Repeater::make('alquilerDetalles')
                     ->label('Productos alquilados')
                     ->relationship('alquilerDetalles')
+                    ->collapsible()
+                    // ->collapsed()
+                    ->columnSpanFull()
+                    // ->columnsrow(2)
                     ->schema([
+                        Forms\Components\Section::make('Detalles del Producto')
+                            ->columns(2)
+                            ->schema([
                         Select::make('inventario_id')
                             ->label('Producto del inventario')
                             ->options(function () {
@@ -245,10 +266,13 @@ class AlquilerResource extends Resource
                             ->reactive()
                             ->afterStateUpdated(fn (callable $set, callable $get) => $set('total', $get('cantidad') * $get('precio_alquiler'))),
                     ])
+                    ])
                     ->defaultItems(1)
                     ->createItemButtonLabel('Agregar producto')
-                    ->columns(2)->visible(fn (string $context) => $context === 'edit'),
-            ])->columns(1);
+                    ->visible(fn (string $context) => $context === 'edit')
+                    ,
+            ])
+            ->columns(4);
     }
 
     public static function table(Table $table): Table

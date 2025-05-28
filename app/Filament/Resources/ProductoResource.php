@@ -13,6 +13,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\Section;
 
 class ProductoResource extends Resource
 {
@@ -23,50 +24,65 @@ class ProductoResource extends Resource
     protected static ?int $navigationSort = 2;
     // protected static ?string $slug = 'inventario/productos';
     protected static ?string $navigationLabel = 'Artículos';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return Producto::count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return Producto::count() > 10 ? 'warning' : 'primary';
+    }
     
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nombre')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Select::make('categoria_id')
-                    ->relationship('categoria', 'name')
-                    ->label('Categoría')
-                    ->searchable()
-                    ->preload()
-                    ->placeholder('Selecciona una categoría')
-                    ->required()
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Nombre de la categoría')
+                Section::make('Personal Info')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),
+                        Forms\Components\Select::make('categoria_id')
+                            ->relationship('categoria', 'name')
+                            ->label('Categoría')
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Selecciona una categoría')
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nombre de la categoría')
+                                    ->required()
+                                    ->maxLength(255),
+                            ]),
+                        Forms\Components\Textarea::make('descripcion')
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('precio_venta')
+                            ->required()
+                            ->numeric(),
+                        Forms\Components\TextInput::make('precio_alquiler')
+                            ->required()
+                            ->numeric(),
+                        Forms\Components\FileUpload::make('imagen')
+                            ->acceptedFileTypes(['image/*'])
+                            ->label('Imagen')
+                            ->image()
+                            ->maxSize(1024)
+                            ->directory('productos')
+                            ->preserveFilenames()
+                            ->columnSpanFull()
+                            ->helperText('Sube una imagen para el producto.')
+                            ->required(),
+                        Forms\Components\Toggle::make('estado')
+                            ->required(),
+                        Forms\Components\Toggle::make('disponible')
+                        ->required(),
+                
                     ]),
-                Forms\Components\Textarea::make('descripcion')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('precio_venta')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('precio_alquiler')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\FileUpload::make('imagen')
-                    ->acceptedFileTypes(['image/*'])
-                    ->label('Imagen')
-                    ->image()
-                    ->maxSize(1024)
-                    ->directory('productos')
-                    ->preserveFilenames()
-                    ->columnSpanFull()
-                    ->helperText('Sube una imagen para el producto.')
-                    ->required(),
-                Forms\Components\Toggle::make('estado')
-                    ->required(),
-                Forms\Components\Toggle::make('disponible')
-                    ->required(),
             ]);
     }
 

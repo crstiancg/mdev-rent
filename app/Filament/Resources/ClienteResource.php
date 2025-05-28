@@ -27,6 +27,12 @@ class ClienteResource extends Resource
     protected static ?int $navigationSort = 4;
     protected static ?string $navigationLabel = 'Clientes';
 
+    public static function getNavigationBadge(): ?string
+    {
+        return Cliente::count();
+    }
+
+
     public static function form(Form $form): Form
     {
         return $form
