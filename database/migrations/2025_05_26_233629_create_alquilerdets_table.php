@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('alquilerdets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('alquiler_id')->constrained();
-            $table->foreignId('producto_id')->constrained();
+            $table->foreignId('inventario_id')->constrained();
             $table->integer('cantidad');
             $table->decimal('precio_alquiler', 10, 2);
-            $table->decimal('subtotal', 10, 2);
+            $table->decimal('subtotal', 10, 2)->nullable();
             $table->timestamps();
         });
     }

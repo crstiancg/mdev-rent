@@ -10,11 +10,17 @@ class Inventario extends Model
         'producto_id',
         'cantidad_total',
         'cantidad_disponible',
+        'disponible'
     ];
 
     public function producto()
     {
         return $this->belongsTo(Producto::class);
+    }
+
+    public function alquilerdets()
+    {
+        return $this->hasMany(Alquilerdet::class);
     }
 
 }

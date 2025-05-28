@@ -3,11 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AlquilerResource\Pages;
-use App\Filament\Resources\AlquilerResource\RelationManagers;
 use App\Models\Alquiler;
 use App\Models\Cliente;
+use App\Models\Inventario;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -18,8 +19,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use GuzzleHttp\Client;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class AlquilerResource extends Resource
 {
@@ -27,184 +26,241 @@ class AlquilerResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            Select::make('cliente_id')
-                ->label('Cliente')
-                ->searchable()
-                ->getSearchResultsUsing(function (string $search) {
-                    return Cliente::query()
-                        ->where('dni', 'like', "%{$search}%")
-                        ->orWhere('nombre', 'like', "%{$search}%")
-                        ->orWhere('apellido_paterno', 'like', "%{$search}%")
-                        ->orWhere('apellido_materno', 'like', "%{$search}%")
-                        ->limit(10)
-                        ->get()
-                        ->mapWithKeys(fn ($cliente) => [
-                            $cliente->id => "{$cliente->dni} - {$cliente->nombre} {$cliente->apellido_paterno} {$cliente->apellido_materno}",
-                        ]);
-                })
-                ->getOptionLabelUsing(function ($value): ?string {
-                    $cliente = Cliente::find($value);
-                    return $cliente
-                        ? "{$cliente->dni} - {$cliente->nombre} {$cliente->apellido_paterno} {$cliente->apellido_materno}"
-                        : null;
-                })
-                ->createOptionForm([
-                    TextInput::make('dni')
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Select::make('cliente_id')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->getSearchResultsUsing(function (string $search) {
+                        return Cliente::query()
+                            ->where('dni', 'like', "%{$search}%")
+                            ->orWhere('nombre', 'like', "%{$search}%")
+                            ->orWhere('apellido_paterno', 'like', "%{$search}%")
+                            ->orWhere('apellido_materno', 'like', "%{$search}%")
+                            ->limit(10)
+                            ->get()
+                            ->mapWithKeys(fn ($cliente) => [
+                                $cliente->id => "{$cliente->dni} - {$cliente->nombre} {$cliente->apellido_paterno} {$cliente->apellido_materno}",
+                            ]);
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $cliente = Cliente::find($value);
+                        return $cliente
+                            ? "{$cliente->dni} - {$cliente->nombre} {$cliente->apellido_paterno} {$cliente->apellido_materno}"
+                            : null;
+                    })
+                    ->createOptionForm([
+                        TextInput::make('dni')
+                            ->required()
+                            ->maxLength(8)
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('buscarDni')
+                                    ->icon('heroicon-o-magnifying-glass')
+                                    ->tooltip('Buscar datos por DNI')
+                                    ->action(function (Get $get, Set $set) {
+                                        $dni = $get('dni');
+
+                                        if (strlen($dni) !== 8) {
+                                            return Notification::make()
+                                                ->title('DNI inválido')
+                                                ->body('Debe contener exactamente 8 dígitos.')
+                                                ->danger()
+                                                ->send();
+                                        }
+
+                                        $persona = Cliente::where('dni', $dni)->first();
+
+                                        if ($persona) {
+                                            $set('nombre', $persona->nombre);
+                                            $set('apellido_paterno', $persona->apellido_paterno);
+                                            $set('apellido_materno', $persona->apellido_materno);
+                                            $set('celular', $persona->celular);
+                                            $set('correo', $persona->correo);
+
+                                            return Notification::make()
+                                                ->title('Persona encontrada')
+                                                ->body('Los datos fueron cargados desde la base de datos.')
+                                                ->success()
+                                                ->send();
+                                        }
+
+                                        try {
+                                            $client = new Client([
+                                                'base_uri' => 'https://api.apis.net.pe',
+                                                'verify' => false,
+                                            ]);
+
+                                            $res = $client->get('/v2/reniec/dni', [
+                                                'headers' => [
+                                                    'Authorization' => 'Bearer apis-token-12213.QvZkSOvaj1LtNqaRSjdIGEguBnF0kacY',
+                                                    'Accept' => 'application/json',
+                                                ],
+                                                'query' => ['numero' => $dni],
+                                            ]);
+
+                                            $response = json_decode($res->getBody(), true);
+
+                                            if (isset($response['numeroDocumento'])) {
+                                                $set('nombre', $response['nombres']);
+                                                $set('apellido_paterno', $response['apellidoPaterno']);
+                                                $set('apellido_materno',  $response['apellidoMaterno']);
+
+                                                Notification::make()
+                                                    ->title('Datos encontrados')
+                                                    ->body('Los datos del DNI fueron cargados correctamente.')
+                                                    ->success()
+                                                    ->send();
+                                            } else {
+                                                Notification::make()
+                                                    ->title('No encontrado')
+                                                    ->body('No se encontraron datos para este DNI.')
+                                                    ->danger()
+                                                    ->send();
+                                            }
+                                        } catch (\Exception $e) {
+                                            Notification::make()
+                                                ->title('Error al consultar')
+                                                ->body('Ocurrió un error al consultar el servicio DNI.')
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    })
+                            ),
+                        TextInput::make('nombre')->required(),
+                        TextInput::make('apellido_paterno')->required(),
+                        TextInput::make('apellido_materno')->required(),
+                        TextInput::make('celular')->required(),
+                        TextInput::make('correo')->required(),
+                    ])
+                    ->createOptionUsing(fn (array $data) => Cliente::create($data)->getKey())
+                    ->required(),
+
+                DatePicker::make('fecha_alquiler')->label('Fecha de alquiler')->required(),
+                DatePicker::make('fecha_entrega')->label('Fecha de entrega'),
+                DatePicker::make('fecha_devolucion')->label('Fecha de devolución'),
+
+                TextInput::make('monto_total')->label('Monto total')->numeric()->visible(fn (string $context) => $context === 'edit'),
+                TextInput::make('estado')->default('pendiente')->visible(fn (string $context) => $context === 'edit'),
+
+                // Repeater::make('inventario_id')
+                //  ->lazy()
+                //     ->schema([
+                //         TextInput::make('cantidad')->required()
+                //     ])
+                //     ->visible(fn (string $context) => $context === 'edit'),
+                Repeater::make('alquilerDetalles')
+                    ->label('Productos alquilados')
+                    ->relationship('alquilerDetalles')
+                    ->schema([
+                        Select::make('inventario_id')
+                            ->label('Producto del inventario')
+                            ->options(function () {
+                                return Inventario::where('disponible', true)
+                                    ->where('cantidad_disponible', '>', 0)
+                                    ->get()
+                                    ->mapWithKeys(fn ($inv) => [
+                                        $inv->id => optional($inv->producto)->nombre ?? 'Sin nombre',
+                                    ]);
+                            })
+                            ->getOptionLabelUsing(function ($value) {
+                                    $inventario = Inventario::with('producto')->find($value);
+                                    return $inventario ? $inventario->producto->nombre : 'Eliminado / no disponible';
+                                })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                           ->dehydrated(true),
+                        TextInput::make('cantidad')
+                        ->label('Cantidad')
+                        ->numeric()
                         ->required()
-                        ->maxLength(8)
-                        ->suffixAction(
-                            Forms\Components\Actions\Action::make('buscarDni')
-                        ->icon('heroicon-o-magnifying-glass')
-                        ->tooltip('Buscar datos por DNI')
-                        ->action(function (Get $get, Set $set) {
-                            $dni = $get('dni');
+                        ->default(1)
+                        ->reactive() // Necesario para actualizar el hint cuando cambia inventario_id
+                        ->hint(function (callable $get) {
+                            $inventarioId = $get('inventario_id');
+                            if (!$inventarioId) return null;
 
-                            if (strlen($dni) !== 8) {
-                                return Notification::make()
-                                    ->title('DNI inválido')
-                                    ->body('Debe contener exactamente 8 dígitos.')
-                                    ->danger()
-                                    ->send();
-                            }
-
-                            $persona = Cliente::where('dni', $dni)->first();
-
-                            if ($persona) {
-                                $set('nombre', $persona->nombre);
-                                $set('apellido_paterno', $persona->apellido_paterno);
-                                $set('apellido_materno', $persona->apellido_materno);
-                                $set('celular', $persona->celular);
-                                $set('correo', $persona->correo);
-
-                                return Notification::make()
-                                    ->title('Persona encontrada')
-                                    ->body('Los datos fueron cargados desde la base de datos.')
-                                    ->success()
-                                    ->send();
-                            }
-
-                            try {
-                                $token = 'apis-token-12213.QvZkSOvaj1LtNqaRSjdIGEguBnF0kacY';
-                                $client = new Client([
-                                    'base_uri' => 'https://api.apis.net.pe',
-                                    'verify' => false,
-                                ]);
-
-                                $parameters = [
-                                    'http_errors' => false,
-                                    'connect_timeout' => 5,
-                                    'headers' => [
-                                        'Authorization' => 'Bearer ' . $token,
-                                        'Referer' => 'https://apis.net.pe/getDni',
-                                        'User-Agent' => 'laravel/guzzle',
-                                        'Accept' => 'application/json',
-                                    ],
-                                    'query' => ['numero' => $dni],
-                                ];
-
-                                $res = $client->request('GET', '/v2/reniec/dni', $parameters);
-                                $response = json_decode($res->getBody()->getContents(), true);
-
-                                if (isset($response['numeroDocumento'])) {
-                                    $set('nombre', $response['nombres']);
-                                    $set('apellido_paterno', $response['apellidoPaterno']);
-                                    $set('apellido_materno', $response['apellidoMaterno']);
-
-                                    Notification::make()
-                                        ->title('Datos encontrados')
-                                        ->body('Los datos del DNI fueron cargados correctamente.')
-                                        ->success()
-                                        ->send();
-                                } else {
-                                    Notification::make()
-                                        ->title('No encontrado')
-                                        ->body('No se encontraron datos para este DNI.')
-                                        ->danger()
-                                        ->send();
-                                }
-                            } catch (\Exception $e) {
-                                Notification::make()
-                                    ->title('Error al consultar')
-                                    ->body('Ocurrió un error al consultar el servicio DNI.')
-                                    ->danger()
-                                    ->send();
-                            }
+                            $inventario = Inventario::find($inventarioId);
+                            return $inventario
+                                ? 'Máximo disponible: ' . $inventario->cantidad_disponible
+                                : 'No disponible';
                         })
-                        ),
+                        ->rule(function (callable $get) {
 
-                    TextInput::make('nombre')->required(),
-                    TextInput::make('apellido_paterno')->required(),
-                    TextInput::make('apellido_materno')->required(),
-                    TextInput::make('celular')->required(),
-                    TextInput::make('correo')->required(),
-                ])
-                ->createOptionUsing(function (array $data) {
-                    return Cliente::create($data)->getKey();
-                })
-                ->afterStateUpdated(function (Set $set, $state) {
-                    $set('cliente_id', $state);
-                })
-                ->required(),
+                            $detalles = $get('../../alquilerDetalles');
 
-            DatePicker::make('fecha_alquiler')
-                ->label('Fecha de alquiler')
-                ->required(),
+                            $totalesPorInventario = [];
 
-            DatePicker::make('fecha_entrega')
-                ->label('Fecha de entrega'),
+                            foreach ($detalles as $detalle) {
+                                $inventarioId = $detalle['inventario_id'];
+                                $cantidad = is_numeric($detalle['cantidad']) ? $detalle['cantidad'] : 0;
 
-            DatePicker::make('fecha_devolucion')
-                ->label('Fecha de devolución'),
+                                if (!isset($totalesPorInventario[$inventarioId])) {
+                                    $totalesPorInventario[$inventarioId] = [
+                                        'inventario_id' => $inventarioId,
+                                        'total' => 0
+                                    ];
+                                }
 
-            TextInput::make('monto_total')
-                ->label('Monto total')
-                ->required()
-                ->numeric(),
+                                $totalesPorInventario[$inventarioId]['total'] += $cantidad;
+                            }
 
-            TextInput::make('estado')
-                ->default('pendiente')
-                ->required(),
-        ]);
-}
+                            // Esta es la función real de validación
+                            return function ($attribute, $value, $fail) use ($get, $totalesPorInventario) {
+
+                                $currentInventarioId = $get('inventario_id');
+                                if (!$currentInventarioId) return;
+
+                                $inventario = \App\Models\Inventario::find($currentInventarioId);
+                                if (!$inventario) return;
+
+                                $stockTotal = $inventario->cantidad_total;
+
+                                // Obtener el total solicitado para el inventario actual
+                                $totalSolicitado = $totalesPorInventario[$currentInventarioId]['total'] ?? 0;
+
+                                if ($totalSolicitado > $stockTotal) {
+                                    $fail("El total solicitado del producto \"{$inventario->producto->nombre}\" excede el stock total registrado: {$stockTotal} unidades.");
+                                }
+                            };
+                        }),
+                        TextInput::make('precio_alquiler')
+                            ->numeric()
+                            ->required()
+                            ->default(0),
+
+                        TextInput::make('total')
+                            ->numeric()
+                            ->required()
+                            ->default(0)
+                            ->disabled()
+                            ->dehydrated()
+                            ->afterStateHydrated(fn ($state, callable $set, callable $get) => $set('total', $get('cantidad') * $get('precio_alquiler')))
+                            ->reactive()
+                            ->afterStateUpdated(fn (callable $set, callable $get) => $set('total', $get('cantidad') * $get('precio_alquiler'))),
+                    ])
+                    ->defaultItems(1)
+                    ->createItemButtonLabel('Agregar producto')
+                    ->columns(2)->visible(fn (string $context) => $context === 'edit'),
+            ])->columns(1);
+    }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('cliente.dni')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('cliente.nombre_completo')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('fecha_alquiler')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('fecha_entrega')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('fecha_devolucion')
-                    ->date()
-                    ->sortable(),
-                // Tables\Columns\TextColumn::make('monto_total')
-                //     ->numeric()
-                //     ->sortable(),
-                Tables\Columns\TextColumn::make('estado')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('cliente.dni')->sortable(),
+                Tables\Columns\TextColumn::make('cliente.nombre_completo')->sortable(),
+                Tables\Columns\TextColumn::make('fecha_alquiler')->date()->sortable(),
+                Tables\Columns\TextColumn::make('fecha_entrega')->date()->sortable(),
+                Tables\Columns\TextColumn::make('fecha_devolucion')->date()->sortable(),
+                Tables\Columns\TextColumn::make('estado')->searchable(),
+                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
-            ])
+            ->filters([])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
@@ -218,18 +274,17 @@ public static function form(Form $form): Form
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListAlquilers::route('/'),
-            'create' => Pages\CreateAlquiler::route('/create'),
+            // 'create' => Pages\CreateAlquiler::route('/create'),
             'view' => Pages\ViewAlquiler::route('/{record}'),
             'edit' => Pages\EditAlquiler::route('/{record}/edit'),
         ];
     }
+
 }

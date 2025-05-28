@@ -16,4 +16,10 @@ class ViewInventario extends ViewRecord
             Actions\EditAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['categoria_id'] = $this->record->producto->categoria_id ?? null;
+        return $data;
+    }
 }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->date('fecha_alquiler');
             $table->date('fecha_entrega')->nullable();
             $table->date('fecha_devolucion')->nullable();
-            $table->decimal('monto_total', 10, 2);
+            $table->decimal('monto_total', 10, 2)->nullable();
             $table->string('estado')->default('pendiente'); // pendiente, entregado, devuelto, cancelado
             $table->timestamps();
         });
