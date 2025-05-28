@@ -13,8 +13,16 @@ class EditProducto extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make(),
+            Actions\ViewAction::make()
+                ->label('Ver Producto')
+                ->icon('heroicon-o-eye')
+                ->color('primary')
+                ->tooltip('Ver este producto'),
+            Actions\DeleteAction::make()
+                ->label('Eliminar Producto')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->tooltip('Eliminar este producto'),
         ];
     }
 }

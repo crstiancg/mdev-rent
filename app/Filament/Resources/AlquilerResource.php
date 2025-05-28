@@ -24,7 +24,11 @@ class AlquilerResource extends Resource
 {
     protected static ?string $model = Alquiler::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+    protected static ?string $navigationGroup = 'Alquileres y Ventas';
+    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationLabel = 'Alquileres';
+
 
     public static function form(Form $form): Form
     {
@@ -262,8 +266,14 @@ class AlquilerResource extends Resource
             ])
             ->filters([])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->icon('heroicon-o-eye')
+                    ->label('Ver')
+                    ->tooltip('Ver detalles del alquiler'),
+                Tables\Actions\EditAction::make()
+                    ->icon('heroicon-o-pencil-square')
+                    ->label('Registrar')
+                    ->tooltip('Registrar artículos para este alquiler'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

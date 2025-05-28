@@ -18,6 +18,14 @@ class CategoriaResource extends Resource
     protected static ?string $model = Categoria::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Inventario y Control';
+    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationLabel = 'Categorías';
+
+    // public static function getGloballySearchableAttributes(): array
+    // {
+    //     return ['name'];
+    // }
 
     public static function form(Form $form): Form
     {
@@ -28,7 +36,8 @@ class CategoriaResource extends Resource
                     ->unique(Categoria::class, 'name', ignorable: fn (?Categoria $record) => $record)
                     ->label('Nombre')
                     ->maxLength(255),
-            ])->columns(1);
+            ])
+            ->columns(1);
     }
 
     public static function table(Table $table): Table
@@ -36,6 +45,7 @@ class CategoriaResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -50,8 +60,16 @@ class CategoriaResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary')
+                    ->tooltip('Editar Categoría'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->tooltip('Eliminar Categoría'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -12,12 +12,13 @@ use Illuminate\Database\Eloquent\Model;
 class EditAlquiler extends EditRecord
 {
     protected static string $resource = AlquilerResource::class;
-
+    protected static ?string $title = 'Registrar Articulo Alquilado';
+    
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
-            Actions\DeleteAction::make(),
+            // Actions\ViewAction::make(),
+            // Actions\DeleteAction::make(),
         ];
     }
 
@@ -75,6 +76,27 @@ class EditAlquiler extends EditRecord
         return parent::getEloquentQuery()->with('alquilerDetalles.inventario.producto');
     }
     
+
+     protected function getFormActions(): array
+    {
+        return [
+            Actions\CreateAction::make()
+                ->label('Guardar')
+                ->icon('heroicon-o-check')
+                ->color('success')
+                , // renombrar "Create"
+            // Actions\CreateAction::make('createAnother')
+            //     ->label('Guardar y nuevo')
+            //     ->icon('heroicon-o-plus')
+            //     ->color('primary')
+            //     ->createAnother(true),
+            Actions\Action::make('cancel')
+                ->label('Cancelar')
+                ->icon('heroicon-o-x-mark')
+                ->url($this->getResource()::getUrl('index'))
+                ->color('warning'),
+        ];
+    }
 
 
 

@@ -18,7 +18,12 @@ class ProductoResource extends Resource
 {
     protected static ?string $model = Producto::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-folder';
+    protected static ?string $navigationGroup = 'Inventario y Control';
+    protected static ?int $navigationSort = 2;
+    // protected static ?string $slug = 'inventario/productos';
+    protected static ?string $navigationLabel = 'Artículos';
+    
 
     public static function form(Form $form): Form
     {
@@ -108,8 +113,13 @@ class ProductoResource extends Resource
                     ->label('Categoría'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye'),
+                Tables\Actions\EditAction::make()
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -134,4 +144,5 @@ class ProductoResource extends Resource
             'edit' => Pages\EditProducto::route('/{record}/edit'),
         ];
     }
+    
 }
