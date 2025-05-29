@@ -69,8 +69,13 @@ class AlquilerResource extends Resource
                             : null;
                     })
                     ->createOptionForm([
+                        Forms\Components\Section::make('Registrar Nuevo Cliente')
+                        ->columns(2)
+                        ->schema([
                         TextInput::make('dni')
                             ->required()
+                            ->unique(Cliente::class, 'dni', ignorable: fn (?Cliente $record) => $record)
+                            ->placeholder('Ingrese el DNI del cliente')
                             ->maxLength(8)
                             ->suffixAction(
                                 Forms\Components\Actions\Action::make('buscarDni')
@@ -148,8 +153,9 @@ class AlquilerResource extends Resource
                         TextInput::make('nombre')->required(),
                         TextInput::make('apellido_paterno')->required(),
                         TextInput::make('apellido_materno')->required(),
-                        TextInput::make('celular')->required(),
+                        TextInput::make('celular')->tel(9)->required()->maxLength(9),
                         TextInput::make('correo')->required(),
+                    ]),
                     ])
                     ->createOptionUsing(fn (array $data) => Cliente::create($data)->getKey())
                     ->required(),

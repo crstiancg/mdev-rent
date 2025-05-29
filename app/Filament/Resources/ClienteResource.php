@@ -139,8 +139,10 @@ class ClienteResource extends Resource
 
                 TextInput::make('celular')
                     ->label('Celular')
+                    ->tel(9)
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(9)
+                    ->helperText('Debe contener exactamente 9 dígitos.'),
 
                 TextInput::make('correo')
                     ->label('Correo electrónico')
@@ -179,7 +181,25 @@ class ClienteResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    // ->requiresConfirmation()
+                    ->action(function (Cliente $cliente) {
+                        if ($cliente->alquileres()->exists()) {
+                            Notification::make()
+                                ->title('No se puede eliminar')
+                                ->body('Este cliente tiene alquileres asociados.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        $cliente->delete();
+                        Notification::make()
+                            ->title('Cliente eliminado')
+                            ->body('El cliente ha sido eliminado correctamente.')
+                            ->success()
+                            ->send();
+                        // \dd($cliente);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

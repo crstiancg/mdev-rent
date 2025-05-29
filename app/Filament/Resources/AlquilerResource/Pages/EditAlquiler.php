@@ -4,10 +4,16 @@ namespace App\Filament\Resources\AlquilerResource\Pages;
 
 use App\Filament\Resources\AlquilerResource;
 use App\Models\Alquiler;
+use App\Models\Alquilerdet;
 use Filament\Actions;
 use Filament\Forms\Components\Builder;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
+use Mockery\Matcher\Not;
+
+use function Laravel\Prompts\alert;
 
 class EditAlquiler extends EditRecord
 {
@@ -18,7 +24,27 @@ class EditAlquiler extends EditRecord
     {
         return [
             // Actions\ViewAction::make(),
-            // Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+            ->before(function (Alquiler $alquiler) {
+                if (Alquilerdet::where('alquiler_id', $alquiler->id)->exists()) {
+                    Notification::make()
+                    ->title('Error al eliminar')
+                    ->body('No se puede eliminar este alquiler porque existen detalles asociados.')
+                    ->danger()
+                    ->send();
+                    
+                    throw ValidationException::withMessages([
+                        'alquiler' => 'Este alquiler tiene detalles asociados.',
+                        ])
+                        ->status(422);
+                    } else {
+                    Notification::make()
+                        ->title('Alquiler eliminado')
+                        ->body('El alquiler ha sido eliminado correctamente.')
+                        ->success()
+                        ->send();
+                }
+            }),
         ];
     }
 
@@ -77,26 +103,26 @@ class EditAlquiler extends EditRecord
     }
     
 
-     protected function getFormActions(): array
-    {
-        return [
-            Actions\CreateAction::make()
-                ->label('Guardar')
-                ->icon('heroicon-o-check')
-                ->color('success')
-                , // renombrar "Create"
-            // Actions\CreateAction::make('createAnother')
-            //     ->label('Guardar y nuevo')
-            //     ->icon('heroicon-o-plus')
-            //     ->color('primary')
-            //     ->createAnother(true),
-            Actions\Action::make('cancel')
-                ->label('Cancelar')
-                ->icon('heroicon-o-x-mark')
-                ->url($this->getResource()::getUrl('index'))
-                ->color('warning'),
-        ];
-    }
+    //  protected function getFormActions(): array
+    // {
+    //     return [
+    //         Actions\CreateAction::make()
+    //             ->label('Guardar')
+    //             ->icon('heroicon-o-check')
+    //             ->color('success')
+    //             , // renombrar "Create"
+    //         // Actions\CreateAction::make('createAnother')
+    //         //     ->label('Guardar y nuevo')
+    //         //     ->icon('heroicon-o-plus')
+    //         //     ->color('primary')
+    //         //     ->createAnother(true),
+    //         Actions\Action::make('cancel')
+    //             ->label('Cancelar')
+    //             ->icon('heroicon-o-x-mark')
+    //             ->url($this->getResource()::getUrl('index'))
+    //             ->color('warning'),
+    //     ];
+    // }
 
 
 
