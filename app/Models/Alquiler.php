@@ -25,8 +25,44 @@ class Alquiler extends Model
         return $this->hasMany(Alquilerdet::class);
     }
 
+    public function calculoMontoTotal()
+    {
+        if ($this->alquilerDetalles->isEmpty()) {
+            return 0;
+        }
+
+        $montoTotal = 0;
+
+        foreach ($this->alquilerDetalles as $detalle) {
+            $montoTotal += $detalle->cantidad * $detalle->precio_alquiler;
+        }
+
+        return $montoTotal;
+    }
+
     protected static function booted()
     {
+        static::saving(function ($alquiler) {
+
+            $alquiler->monto_total = $alquiler->calculoMontoTotal();
+            // if ($alquiler->alquilerDetalles->isEmpty()) {
+            //     return;
+            // }
+
+            // // $alquiler->monto_total = $alquiler->alquilerDetalles->sum(function ($detalle) {
+            // //     return $detalle->cantidad * $detalle->precio_alquiler;
+            // // });
+
+            // $montoTotal = 0;
+
+            // foreach ($alquiler->alquilerDetalles as $detalle) {
+            //     $montoTotal += $detalle->cantidad * $detalle->precio_alquiler;
+            // }
+            // $alquiler->monto_total = $montoTotal;
+
+            // $alquiler->save();
+        });
+
         static::saved(function ($alquiler) {
             foreach ($alquiler->alquilerDetalles as $detalle) {
                 $inventario = $detalle->inventario;
@@ -44,16 +80,60 @@ class Alquiler extends Model
         });
 
         static::updating(function ($alquiler) {
-        foreach ($alquiler->getOriginal('alquilerDetalles') ?? [] as $detalleOriginal) {
-            $detalle = \App\Models\Alquilerdet::find($detalleOriginal['id']);
-            if ($detalle && $detalle->inventario) {
-                $detalle->inventario->cantidad_disponible += $detalle->cantidad;
-                $detalle->inventario->disponible = true;
-                $detalle->inventario->save();
+            foreach ($alquiler->getOriginal('alquilerDetalles') ?? [] as $detalleOriginal) {
+                $detalle = \App\Models\Alquilerdet::find($detalleOriginal['id']);
+                if ($detalle && $detalle->inventario) {
+                    $detalle->inventario->cantidad_disponible += $detalle->cantidad;
+                    $detalle->inventario->disponible = true;
+                    $detalle->inventario->save();
+                }
             }
-        }
+            $alquiler->monto_total = $alquiler->calculoMontoTotal();
         });
     }
+
+    // protected static function booted()
+    // {
+    //     static::saved(function ($alquiler) {
+
+    //         if ($alquiler->alquilerDetalles->isEmpty()) {
+    //             return;
+    //         }
+
+    //         $montoTotal = 0;
+    //         foreach ($alquiler->alquilerDetalles as $detalle) {
+    //             $montoTotal += $detalle->cantidad * $detalle->precio_alquiler;
+    //         }
+
+    //         $alquiler->monto_total = $montoTotal;
+    //         $alquiler->save();
+
+    //         foreach ($alquiler->alquilerDetalles as $detalle) {
+    //             $inventario = $detalle->inventario;
+
+    //             if ($inventario && $inventario->cantidad_disponible >= $detalle->cantidad) {
+    //                 $inventario->cantidad_disponible -= $detalle->cantidad;
+
+    //                 if ($inventario->cantidad_disponible <= 0) {
+    //                     $inventario->disponible = false;
+    //                 }
+
+    //                 $inventario->save();
+    //             }
+    //         }
+    //     });
+
+    //     static::updating(function ($alquiler) {
+    //     foreach ($alquiler->getOriginal('alquilerDetalles') ?? [] as $detalleOriginal) {
+    //         $detalle = \App\Models\Alquilerdet::find($detalleOriginal['id']);
+    //         if ($detalle && $detalle->inventario) {
+    //             $detalle->inventario->cantidad_disponible += $detalle->cantidad;
+    //             $detalle->inventario->disponible = true;
+    //             $detalle->inventario->save();
+    //         }
+    //     }
+    //     });
+    // }
 
 //     protected static function booted()
 // {

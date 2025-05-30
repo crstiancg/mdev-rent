@@ -23,8 +23,14 @@ class EditAlquiler extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Actions\ViewAction::make(),
+            Actions\Action::make('cancel')
+            ->label('Regresar a la lista')
+            ->icon('heroicon-o-x-mark')
+            ->url(AlquilerResource::getUrl('index')),
             Actions\DeleteAction::make()
+            ->label('Eliminar Alquiler')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
             ->before(function (Alquiler $alquiler) {
                 if (Alquilerdet::where('alquiler_id', $alquiler->id)->exists()) {
                     Notification::make()

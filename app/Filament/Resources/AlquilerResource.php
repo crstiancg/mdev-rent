@@ -6,6 +6,7 @@ use App\Filament\Resources\AlquilerResource\Pages;
 use App\Models\Alquiler;
 use App\Models\Cliente;
 use App\Models\Inventario;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
@@ -164,8 +165,21 @@ class AlquilerResource extends Resource
                 DatePicker::make('fecha_entrega')->label('Fecha de entrega'),
                 DatePicker::make('fecha_devolucion')->label('Fecha de devolución'),
 
-                TextInput::make('monto_total')->label('Monto total')->numeric()->visible(fn (string $context) => $context === 'edit'),
-                TextInput::make('estado')->default('pendiente')->visible(fn (string $context) => $context === 'edit'),
+                // TextInput::make('monto_total')->label('Monto total')
+                // ->dehydrated(true) // evita que se sobrescriba desde el formulario
+                // ->disabled()
+                // ->numeric()
+                // ->reactive()
+                // ->visible(fn (string $context) => $context === 'edit'),
+                Select::make('estado')
+                ->label('Estado')
+                ->options([
+                    'pendiente' => 'Pendiente',
+                    'entregado' => 'Entregado',
+                    'devuelto' => 'Devuelto',
+                    'cancelado' => 'Cancelado',
+                ])->native(false)
+                ->default('pendiente')->visible(fn (string $context) => $context === 'edit'),
                 ]),
 
                 // Repeater::make('inventario_id')
@@ -272,7 +286,13 @@ class AlquilerResource extends Resource
                             ->reactive()
                             ->afterStateUpdated(fn (callable $set, callable $get) => $set('total', $get('cantidad') * $get('precio_alquiler'))),
                     ])
-                    ])
+                    ])->deleteAction(
+                        fn (Action $action) => $action->requiresConfirmation()->label('Eliminar producto')
+                            ->modalHeading('Eliminar producto del alquiler restaura la cantidad disponible de lo eliminado.')
+                            ->color('danger')
+                            ->icon('heroicon-o-trash')
+                            ->modalDescription('¿Estás seguro de eliminar este producto del alquiler? Esta acción no se puede deshacer.'),
+                    )
                     ->defaultItems(1)
                     ->createItemButtonLabel('Agregar producto')
                     ->visible(fn (string $context) => $context === 'edit')
@@ -288,9 +308,39 @@ class AlquilerResource extends Resource
                 Tables\Columns\TextColumn::make('cliente.dni')->sortable(),
                 Tables\Columns\TextColumn::make('cliente.nombre_completo')->sortable(),
                 Tables\Columns\TextColumn::make('fecha_alquiler')->date()->sortable(),
-                Tables\Columns\TextColumn::make('fecha_entrega')->date()->sortable(),
-                Tables\Columns\TextColumn::make('fecha_devolucion')->date()->sortable(),
-                Tables\Columns\TextColumn::make('estado')->searchable(),
+                Tables\Columns\TextColumn::make('monto_total')->badge()
+                    ->formatStateUsing(fn ($state) => number_format($state, 2, '.', ','))
+                    ->icon('heroicon-o-currency-dollar'),
+                Tables\Columns\TextColumn::make('fecha_entrega')->date()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('fecha_devolucion')->date()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                // Tables\Columns\SelectColumn::make('estado')->options([
+                //     'pendiente' => 'Pendiente',
+                //     'entregado' => 'Entregado',
+                //     'devuelto' => 'Devuelto',
+                //     'cancelado' => 'Cancelado',
+                // ])->rules(['required'])->selectablePlaceholder(false),
+                Tables\Columns\TextColumn::make('estado')->badge()
+                    ->colors([
+                        'primary' => 'pendiente',
+                        'success' => 'entregado',
+                        'warning' => 'devuelto',
+                        'danger' => 'cancelado',
+                    ])
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pendiente' => 'Pendiente',
+                        'entregado' => 'Entregado',
+                        'devuelto' => 'Devuelto',
+                        'cancelado' => 'Cancelado',
+                        default => 'Desconocido',
+                    })->icon(fn ($state) => match ($state) {
+                        'pendiente' => 'heroicon-o-clock',
+                        'entregado' => 'heroicon-o-check-circle',
+                        'devuelto' => 'heroicon-o-arrow-right-circle',
+                        'cancelado' => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-question-mark-circle',
+                    }),
+                // Tables\Columns\TextColumn::make('id')->counts('alquiler_id')
+                //     ->label('Artículos registrados'),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
